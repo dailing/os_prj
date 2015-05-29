@@ -10,7 +10,8 @@ using namespace std;
 
 enum event_type{
 	EVENT_NEW_PROCESS = 1,
-	EVENT_RR_TIMEOUT
+	EVENT_RR_TIMEOUT,
+	EVENT_PAGE_FETCHED
 };
 
 union event_data{

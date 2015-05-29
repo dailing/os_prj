@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include <string>
 #include "simulator.h"
-#include "mem_sim.h"
-#include "task_structure.h"
-#include "event.h"
+#include "mem_sim_fifo.h"
 
 simulator::simulator(int _pages,int _quantum,
 		string _pr,string trace_fi):
@@ -13,7 +11,8 @@ simulator::simulator(int _pages,int _quantum,
 		read_page_time(1000),
 		current(NULL),
 		quantum(_quantum),
-		sys_count(0)
+		sys_count(0),
+		memmodule(NULL)
 {
 	printf("-----------------------------------------\n");
 	printf("pages:%d quantum:%d\n", _pages,_quantum);
@@ -36,14 +35,19 @@ simulator::simulator(int _pages,int _quantum,
 		printf("%-5s  %8.0f %8.0f %9d\n", namebuf,starttime,cputime,iocount);
 		eventQueue.push(event((int)starttime,EVENT_NEW_PROCESS,namebuf));
 	}
+	memmodule = new mem_sim_fifo(_pages);
 	printf("simulator initialed\n");
 	printf("-----------------------------------------\n");
 }
 
+/*	add current to end of ready queue and run the fitst
+	process in ready queue.
+	context switch time is add if context switch is needed 
+*/
 void simulator::schedule(void){
-	printf("switch %s to %s at %ld\n", 
-		current==NULL?"EMPTY":current->pname.c_str(),
-		readyQueue.empty()?"EMPTY":readyQueue.front()->pname.c_str(),
+	printf("switch %d to %d at %ld\n", 
+		current==NULL?0:current->pid,
+		readyQueue.empty()?0:readyQueue.front()->pid,
 		sys_count);
 	if(current != NULL){
 		readyQueue.push(current);
@@ -57,13 +61,22 @@ void simulator::schedule(void){
 		current->last_sched_in = sys_count;
 		readyQueue.pop();
 	}else{
-		// printf("readyQueue empty\n");
 		current = NULL;
 	}
-
-	// printf("leave schedule\n");
 }
-
+/*
+	this function put the current process to waiting 
+	queue. and call schedule to get a process in readyqueue
+	to run.
+*/
+void simulator::switch_out(void){
+	if(current != NULL){
+		printf("switch out %d at %ld\n", current->pid, sys_count);
+		waitingQueue.push(current);
+		current = NULL;
+		schedule();
+	}
+}
 /*
 	interact with readyQueue, eventQueue, current
 
@@ -88,13 +101,19 @@ bool simulator::clock_tick(){
 			case EVENT_NEW_PROCESS:
 				processname = string(eventQueue.top().data.pname);
 				printf("nwe process:%s at %ld\n", processname.c_str(),sys_count);
-				readyQueue.push(new task_structure(processname,filePath+processname+".mem") );
+				readyQueue.push(
+					new task_structure(
+						processname,filePath+processname+".mem",memmodule) );
 				break;
 			case EVENT_RR_TIMEOUT:
-				if(current != NULL && eventQueue.top().start_time-current->last_sched_in == quantum){
+				if(current != NULL && 
+					eventQueue.top().start_time-current->last_sched_in == quantum)
+				{
 					schedule();
 				}
 				break;
+			case EVENT_PAGE_FETCHED:
+				
 			default:
 				printf("ERROR:unrecognized event type\n");
 				break;
@@ -109,10 +128,20 @@ bool simulator::clock_tick(){
 		sys_count = eventQueue.top().start_time;
 	}
 	// run process
-	if(current != NULL && current->clock_tick()){
-		printf("process :%s finished at %ld \n", current->pname.c_str(),sys_count);
-		delete current;
-		current = NULL;
+	if(current != NULL){
+		switch(current->clock_tick()){
+		case TASK_END:
+			printf("process :%d finished at %ld \n", current->pid,sys_count);
+			delete current;
+			current = NULL;
+			break;
+		case TASK_PGF:
+			// printf("TASK_PGF\n");
+			switch_out();
+			break;
+		case TASK_NORMAL:
+			break;
+		}
 	}
 	sys_count++;
 	if(current == NULL && eventQueue.empty() && readyQueue.empty())

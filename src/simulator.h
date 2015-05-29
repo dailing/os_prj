@@ -3,7 +3,6 @@
 
 #include <queue>
 #include <string>
-// #include <priority_queue>
 #include <queue>
 #include "event.h"
 #include "task_structure.h"
@@ -27,11 +26,14 @@ private:
 	// enviroment
 	string filePath;
 
+	mem_sim * memmodule;
+
 /* 	this call will switch current procrss
 	out and switch process from ready queue
 	in.
 */
 	void schedule(void);
+	void switch_out(void);
 
 public:
 	void addProcess();
