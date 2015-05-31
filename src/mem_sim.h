@@ -1,6 +1,7 @@
 #ifndef _MEM_SIM_HEADER_
 #define _MEM_SIM_HEADER_ 
-
+#include "task_structure.h"
+#include "event.h"
 
 enum MEM_ACCESS_SRARUS
 {
@@ -11,11 +12,12 @@ enum MEM_ACCESS_SRARUS
 
 class mem_sim
 {
-private:
-	int pages;
 public:
-	virtual int access(int pid,int pgnum) = 0;
-	virtual int allocate(int pid) = 0;
+	int read_page_time;
+	int pages;
+	// virtual int access(int pid,int pgnum) = 0;
+	// virtual int allocate(int pid) = 0;
+	virtual int clock_tick(task_structure*,priority_queue<event> &, long stime)=0;
 	mem_sim(int _pages);
 };
 

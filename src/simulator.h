@@ -4,8 +4,10 @@
 #include <queue>
 #include <string>
 #include <queue>
+#include <set>
 #include "event.h"
 #include "task_structure.h"
+#include "mem_sim.h"
 
 using namespace std;
 
@@ -18,7 +20,9 @@ private:
 	// task record
 	task_structure *current;
 	queue<task_structure*> readyQueue;
-	queue<task_structure*> waitingQueue;
+	set<task_structure*> waitingQueue;
+	// set<task_structure*> processes;
+	set<task_structure*> finishedSet;
 	// scheduler 
 	int quantum;
 	long sys_count;

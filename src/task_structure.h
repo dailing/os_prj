@@ -4,7 +4,7 @@
 #include <string>
 #include <queue>
 #include <map>
-#include "mem_sim.h"
+// #include "mem_sim.h"
 
 using namespace std;
 
@@ -16,21 +16,21 @@ enum TASK_RET_TYPE{
 
 class task_structure
  {
- private:
+ public:
  	static int task_count;
  	string p_mem_file;
  	FILE *mem_file;
  	queue<int> memseq;
- 	mem_sim* memmodule;
-
+ 	// mem_sim* memmodule;
+ 	// map virtual to phical
  	map<int,int> addmap;
 
  public:
  	int pid;
  	long last_sched_in;
  	string pname;
- 	task_structure(string name,string mem_file,mem_sim*);
-	int clock_tick();
+ 	task_structure(string name,string mem_file);
+	// int clock_tick();
  };
 
 

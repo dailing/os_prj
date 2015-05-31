@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <assert.h>
 #include "simulator.h"
 #include "mem_sim_fifo.h"
 
@@ -45,24 +46,29 @@ simulator::simulator(int _pages,int _quantum,
 	context switch time is add if context switch is needed 
 */
 void simulator::schedule(void){
-	printf("switch %d to %d at %ld\n", 
-		current==NULL?0:current->pid,
-		readyQueue.empty()?0:readyQueue.front()->pid,
-		sys_count);
-	if(current != NULL){
-		readyQueue.push(current);
-	}
-	if(readyQueue.size() > 1 && current != NULL){
+	// printf("switch %d to %d at %ld\n", 
+	// 	current==NULL?0:current->pid,
+	// 	readyQueue.empty()?0:readyQueue.front()->pid,
+	// 	sys_count);
+	if(readyQueue.size() > 0 && current != NULL){
 		sys_count += context_switch_time;
 	}
-	if(!readyQueue.empty()){
-		eventQueue.push(event(sys_count+quantum,EVENT_RR_TIMEOUT));
+	if(current != NULL){
+		readyQueue.push(current);
 		current = readyQueue.front();
 		current->last_sched_in = sys_count;
+		eventQueue.push(event(sys_count+quantum,EVENT_RR_TIMEOUT));
 		readyQueue.pop();
 	}else{
-		current = NULL;
+		if(!readyQueue.empty()){
+			current = readyQueue.front();
+			current->last_sched_in = sys_count;
+			eventQueue.push(event(sys_count+quantum,EVENT_RR_TIMEOUT));
+			readyQueue.pop();
+		}
 	}
+
+	// printf("switch end\n");
 }
 /*
 	this function put the current process to waiting 
@@ -71,10 +77,12 @@ void simulator::schedule(void){
 */
 void simulator::switch_out(void){
 	if(current != NULL){
-		printf("switch out %d at %ld\n", current->pid, sys_count);
-		waitingQueue.push(current);
+		// printf("switch out %d at %ld\n", current->pid, sys_count);
+		// waitingQueue.insert(current);
+		// printf("schedule\n");
 		current = NULL;
 		schedule();
+		// printf("schedule END\n");
 	}
 }
 /*
@@ -95,25 +103,65 @@ void simulator::switch_out(void){
 */
 bool simulator::clock_tick(){
 	// handle event
+	// printf("TEST0\n");
 	while(!eventQueue.empty() && sys_count >= eventQueue.top().start_time){
 		string processname;
+		event_erase_pagre_data eepd;
 		switch(eventQueue.top().type){
 			case EVENT_NEW_PROCESS:
+				// printf("#1\n");
 				processname = string(eventQueue.top().data.pname);
 				printf("nwe process:%s at %ld\n", processname.c_str(),sys_count);
 				readyQueue.push(
 					new task_structure(
-						processname,filePath+processname+".mem",memmodule) );
+						processname,filePath+processname+".mem") );
+				// processes.insert(readyQueue.back());
+				// printf("#2\n");
 				break;
 			case EVENT_RR_TIMEOUT:
+				// printf("#3\n");
 				if(current != NULL && 
 					eventQueue.top().start_time-current->last_sched_in == quantum)
 				{
 					schedule();
 				}
+				// printf("#4\n");
 				break;
 			case EVENT_PAGE_FETCHED:
-				
+				// printf("#5\n");
+				eepd = eventQueue.top().data.eepd;
+				// assert(waitingQueue.find(eepd.process) != waitingQueue.end());
+				assert(finishedSet.find(eepd.process) == finishedSet.end() );
+				// waitingQueue.erase(eepd.process);
+				// printf("#5_1\n");
+				readyQueue.push(eepd.process);
+				// printf("#5_2\n");
+				assert(eepd.process != NULL);
+				eepd.process->addmap[eepd.vpage] = eepd.ppage;
+				// printf("add page , process %d , vpage %x ,ppage %d at %ld\n", eepd.process->pid,
+					// eepd.vpage,eepd.ppage, sys_count);
+				// printf("#6\n");
+				break;
+			case EVENT_ERASE_PAGE:
+				// printf("#7\n");
+				assert(!eventQueue.empty());
+				eepd = eventQueue.top().data.eepd;
+				if(finishedSet.find(eepd.process) != finishedSet.end()){
+					// printf("process %s , erase vpahg %d ppage %d at %ld\n", eepd.process->pname.c_str(),
+						// eepd.vpage, eepd.ppage,sys_count);
+					break;
+				}
+				assert(finishedSet.find(eepd.process) == finishedSet.end() );
+				// printf("#7_1\n");
+				assert(eepd.process != NULL);
+				// printf("#7_2\n");
+				assert(eepd.process->addmap.find(eepd.vpage) != eepd.process->addmap.end());
+				// printf("#7_3\n");
+				// printf("erase vpage %6d ppage %6d for %s\n", eepd.vpage,eepd.ppage, eepd.process->pname.c_str());
+				// printf("#7_4\n");
+				eepd.process->addmap.erase(eepd.vpage);
+				// printf("#8\n");
+				break;
 			default:
 				printf("ERROR:unrecognized event type\n");
 				break;
@@ -128,22 +176,29 @@ bool simulator::clock_tick(){
 		sys_count = eventQueue.top().start_time;
 	}
 	// run process
+	// printf("TEST1\n");
 	if(current != NULL){
-		switch(current->clock_tick()){
+		switch(memmodule->clock_tick(current,eventQueue,sys_count)){
 		case TASK_END:
+			// printf("#1\n");
 			printf("process :%d finished at %ld \n", current->pid,sys_count);
-			delete current;
+			// processes.erase(current);
+			// delete current;
+			finishedSet.insert(current);
 			current = NULL;
+			// printf("#2\n");
 			break;
 		case TASK_PGF:
-			// printf("TASK_PGF\n");
+			// printf("#3\n");
 			switch_out();
+			// printf("#4\n");
 			break;
 		case TASK_NORMAL:
 			break;
 		}
 	}
 	sys_count++;
+	// printf("TEST2\n");
 	if(current == NULL && eventQueue.empty() && readyQueue.empty())
 		return true;
 	else
