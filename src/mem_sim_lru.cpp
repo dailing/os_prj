@@ -1,18 +1,30 @@
-#include "mem_sim_fifo.h"
+#include "mem_sim_lru.h"
 #include <assert.h>
+#include <algorithm>
 
-mem_sim_fifo::mem_sim_fifo(int _pages):
+mem_sim_lru::mem_sim_lru(int _pages):
 	mem_sim(_pages),
 	last_load_page(0)
 {
 	firstVisit.resize(pages);
+	visitTime.resize(pages);
 	for (int i = 0; i < pages; ++i){
 		freePages.push(i);
 		firstVisit[i] = 0;
+		visitTime[i] = 0;
 	}
 }
 
-int mem_sim_fifo::handle_page_event(priority_queue<event>&eventQueue, long stime){
+int mem_sim_lru::find_page(void){
+	int ret = 0;
+	for(int i = 1; i < (int)visitTime.size(); i++){
+		if(visitTime[i] < visitTime[ret])
+			ret = i;
+	}
+	return ret;
+}
+
+int mem_sim_lru::handle_page_event(priority_queue<event>&eventQueue, long stime){
 	if(requestQueue.empty())
 		return 0;
 	int start_time = max(last_load_page+read_page_time,stime);
@@ -27,17 +39,15 @@ int mem_sim_fifo::handle_page_event(priority_queue<event>&eventQueue, long stime
 				ppage, // phisical page
 				requestQueue.front().data.eepd.vpage  // virtual page#
 				) );
-		// printf("add   vpage %d ppage %d for %s at %ld\n", 
-		// 	requestQueue.front().data.eepd.vpage,
-		// 	ppage,requestQueue.front().data.eepd.process->pname.c_str(),stime);
 		ppage_pid_map[ppage] = requestQueue.front().data.eepd.process;
 		ppage_vpage_map[ppage] = requestQueue.front().data.eepd.vpage;
-		loadQueue.push(ppage);
+		visitTime[ppage] = start_time+read_page_time;
 		freePages.pop();
 		requestQueue.pop();
 	}else{
 		int vpage = requestQueue.front().data.eepd.vpage;
-		int ppage = loadQueue.front();
+		// int ppage = loadQueue.front().ppage;
+		int ppage = find_page();
 		if(firstVisit[ppage] == 0){
 			firstVisit[ppage] = 1;
 			if(!ppage_pid_map[ppage]->finished){
@@ -57,8 +67,9 @@ int mem_sim_fifo::handle_page_event(priority_queue<event>&eventQueue, long stime
 					ppage, // phisical page
 					vpage  // virtual page#
 					) );
-			loadQueue.pop();
-			loadQueue.push(ppage);
+			// loadQueue.pop_front();
+			// loadQueue.push_back(ppage);
+			visitTime[ppage] = start_time+read_page_time;
 			ppage_pid_map[ppage] = requestQueue.front().data.eepd.process;
 			ppage_vpage_map[ppage] = requestQueue.front().data.eepd.vpage;
 			requestQueue.pop();
@@ -66,13 +77,14 @@ int mem_sim_fifo::handle_page_event(priority_queue<event>&eventQueue, long stime
 	}
 	return 1;
 }
-int mem_sim_fifo::clock_tick(task_structure*current,priority_queue<event>&eventQueue, long stime){
+int mem_sim_lru::clock_tick(task_structure*current,priority_queue<event>&eventQueue, long stime){
 	// printf("clock_tick %s vpage %d \n",current->pname.c_str(), current->memseq.front());
 	assert(current != NULL);
 	int pg  = current->memseq.front();
 	if(current->addmap.find(pg) != current->addmap.end()){
 		current->memseq.pop();
 		firstVisit[current->addmap[pg]] = 0;
+		visitTime[current->addmap[pg]] = stime;
 		if(current->memseq.empty()){
 			// printf("%s finished\n", current->pname.c_str());
 			for(map<int,int>::iterator i = current->addmap.begin();

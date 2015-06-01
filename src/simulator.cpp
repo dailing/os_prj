@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "simulator.h"
 #include "mem_sim_fifo.h"
+#include "mem_sim_lru.h"
 
 simulator::simulator(int _pages,int _quantum,
 		string _pr,string trace_fi):
@@ -36,7 +37,12 @@ simulator::simulator(int _pages,int _quantum,
 		printf("%-5s  %8.0f %8.0f %9d\n", namebuf,starttime,cputime,iocount);
 		eventQueue.push(event((int)starttime,EVENT_NEW_PROCESS,namebuf));
 	}
-	memmodule = new mem_sim_fifo(_pages);
+	if(_pr == string("fifo"))
+		memmodule = new mem_sim_fifo(_pages);
+	else if(_pr == string("lru"))
+		memmodule = new mem_sim_lru(_pages);
+	else
+		printf("ERROR: param unrecognized\n");
 	printf("simulator initialed\n");
 	printf("-----------------------------------------\n");
 }
