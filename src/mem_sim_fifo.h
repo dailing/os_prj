@@ -29,6 +29,7 @@ public:
 	mem_sim_fifo(int _pages);
 	int access(int pid,int pgnum);
 	int clock_tick(task_structure*,priority_queue<event> &,long stime);
+	int handle_page_event(priority_queue<event>&eventQueue, long stime);
 
 	// int allocate(int pid);
 };

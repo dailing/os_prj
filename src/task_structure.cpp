@@ -3,7 +3,8 @@
 #include <stdio.h>
 
 task_structure::task_structure(string name, string mem_file_name)
-	:pname(name)
+	:pname(name),
+	finished(false)
 {
 	task_count ++;
 	pid = task_count;

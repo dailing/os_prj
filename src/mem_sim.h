@@ -16,6 +16,7 @@ public:
 	int read_page_time;
 	int pages;
 	virtual int clock_tick(task_structure*,priority_queue<event> &, long stime)=0;
+	virtual int handle_page_event(priority_queue<event>&eventQueue, long stime)=0;
 	mem_sim(int _pages);
 };
 

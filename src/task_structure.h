@@ -21,9 +21,10 @@ class task_structure
  	string p_mem_file;
  	FILE *mem_file;
  	queue<int> memseq;
- 	// mem_sim* memmodule;
  	// map virtual to phical
  	map<int,int> addmap;
+
+ 	bool finished;
 
  public:
  	int pid;
