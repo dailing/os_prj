@@ -5,6 +5,7 @@
 #include "simulator.h"
 #include "mem_sim_fifo.h"
 #include "mem_sim_lru.h"
+#include "mem_sim_2ch.h"
 
 simulator::simulator(int _pages,int _quantum,
 		string _pr,string trace_fi):
@@ -14,18 +15,19 @@ simulator::simulator(int _pages,int _quantum,
 		current(NULL),
 		quantum(_quantum),
 		sys_count(0),
-		memmodule(NULL)
+		memmodule(NULL),
+		idleTime(0)
 {
-	printf("-----------------------------------------\n");
-	printf("pages:%d quantum:%d\n", _pages,_quantum);
-	printf("pr:              %s\n", _pr.c_str());
-	printf("trace file:      %s\n", trace_fi.c_str());
+	// printf("-----------------------------------------\n");
+	// printf("pages:%d quantum:%d\n", _pages,_quantum);
+	// printf("pr:              %s\n", _pr.c_str());
+	// printf("trace file:      %s\n", trace_fi.c_str());
 	unsigned int found = trace_fi.find_last_of("/\\");
 	if(found !=  string::npos)
 		filePath = trace_fi.substr(0,found) + "/";
 	else
 		filePath = "";
-	printf("trace file path: %s\n", filePath.c_str());
+	// printf("trace file path: %s\n", filePath.c_str());
 	
 	float starttime,cputime;
 	int iocount;
@@ -34,22 +36,25 @@ simulator::simulator(int _pages,int _quantum,
 	while(EOF != fscanf(file,"%s%f%f%d",namebuf,&starttime,&cputime,&iocount)){
 		starttime *= circles_per_second;
 		cputime   *= circles_per_second;
-		printf("%-5s  %8.0f %8.0f %9d\n", namebuf,starttime,cputime,iocount);
+		// printf("%-5s  %8.0f %8.0f %9d\n", namebuf,starttime,cputime,iocount);
 		eventQueue.push(event((int)starttime,EVENT_NEW_PROCESS,namebuf));
 	}
+	// printf("SCHE: %s\n", _pr.c_str());
 	if(_pr == string("fifo"))
 		memmodule = new mem_sim_fifo(_pages);
 	else if(_pr == string("lru"))
 		memmodule = new mem_sim_lru(_pages);
+	else if(_pr	== string("2ch‐alg"))
+		memmodule = new mem_sim_2ch(_pages);
 	else
 		printf("ERROR: param unrecognized\n");
-	printf("simulator initialed\n");
-	printf("-----------------------------------------\n");
+	// printf("simulator initialed\n");
+	// printf("-----------------------------------------\n");
 }
 
 /*	add current to end of ready queue and run the fitst
 	process in ready queue.
-	context switch time is add if context switch is needed 
+	context switch time is added if context switch is needed 
 */
 void simulator::schedule(void){
 	// printf("switch %d to %d at %ld\n", 
@@ -73,7 +78,9 @@ void simulator::schedule(void){
 			readyQueue.pop();
 		}
 	}
-
+	if(current != NULL && current->start_time == -1){
+		current->start_time = sys_count;
+	}
 	// printf("switch end\n");
 }
 /*
@@ -117,10 +124,11 @@ bool simulator::clock_tick(){
 			case EVENT_NEW_PROCESS:
 				// printf("#1\n");
 				processname = string(eventQueue.top().data.pname);
-				printf("nwe process:%s at %ld\n", processname.c_str(),sys_count);
+				// printf("nwe process:%s at %ld\n", processname.c_str(),sys_count);
 				readyQueue.push(
 					new task_structure(
 						processname,filePath+processname+".mem") );
+				tasks.push_back(readyQueue.back());
 				// processes.insert(readyQueue.back());
 				// printf("#2\n");
 				break;
@@ -162,6 +170,8 @@ bool simulator::clock_tick(){
 		schedule();
 	}
 	if(current == NULL && !eventQueue.empty()){
+		assert(eventQueue.top().start_time >= sys_count);
+		idleTime += eventQueue.top().start_time - sys_count;
 		sys_count = eventQueue.top().start_time;
 	}
 	// run process
@@ -170,9 +180,10 @@ bool simulator::clock_tick(){
 		switch(memmodule->clock_tick(current,eventQueue,sys_count)){
 		case TASK_END:
 			// printf("#1\n");
-			printf("process :%d finished at %ld \n", current->pid,sys_count);
+			// printf("process :%d finished at %ld \n", current->pid,sys_count);
 			// processes.erase(current);
 			// delete current;
+			current->end_time = sys_count;
 			finishedSet.insert(current);
 			current = NULL;
 			// printf("#2\n");
@@ -185,12 +196,31 @@ bool simulator::clock_tick(){
 		case TASK_NORMAL:
 			break;
 		}
+		sys_count++;
 	}
-	sys_count++;
 	// printf("TEST2\n");
 	if(current == NULL && eventQueue.empty() && readyQueue.empty() &&
 		memmodule->handle_page_event(eventQueue,sys_count)==0)
+	{
+		printResult();
 		return true;
-	else
+	}else{
 		return false;
+	}
+}
+
+void simulator::printResult(void){
+	long totalPgf = 0;
+	for(int i = 0; i < (int)tasks.size(); i++){
+		printf("process: %5s %9u insts, Used %13ld circles, %8ld pgf, %8ld hit\n", 
+			tasks[i]->pname.c_str(),
+			tasks[i]->numInsts,
+			(tasks[i]->end_time - tasks[i]->start_time),
+			tasks[i]->num_pgf,
+			tasks[i]->num_hit - tasks[i]->num_pgf
+			);
+		totalPgf += tasks[i]->num_pgf;
+	}
+	printf("rotal pageFauault:%ld,   time: %ld,  idleTime: %ld\n", 
+		totalPgf, sys_count, idleTime);
 }

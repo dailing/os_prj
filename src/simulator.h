@@ -31,12 +31,18 @@ private:
 
 	mem_sim * memmodule;
 
+	// reduntant, for output
+	vector<task_structure*> tasks;
+
+	long idleTime;
 /* 	this call will switch current procrss
 	out and switch process from ready queue
 	in.
 */
 	void schedule(void);
 	void switch_out(void);
+
+	void printResult(void);
 
 public:
 	void addProcess();

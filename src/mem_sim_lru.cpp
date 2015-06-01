@@ -6,6 +6,7 @@ mem_sim_lru::mem_sim_lru(int _pages):
 	mem_sim(_pages),
 	last_load_page(0)
 {
+	printf("LRU\n");
 	firstVisit.resize(pages);
 	visitTime.resize(pages);
 	for (int i = 0; i < pages; ++i){
@@ -78,6 +79,7 @@ int mem_sim_lru::handle_page_event(priority_queue<event>&eventQueue, long stime)
 	return 1;
 }
 int mem_sim_lru::clock_tick(task_structure*current,priority_queue<event>&eventQueue, long stime){
+	mem_sim::statics(current);
 	// printf("clock_tick %s vpage %d \n",current->pname.c_str(), current->memseq.front());
 	assert(current != NULL);
 	int pg  = current->memseq.front();

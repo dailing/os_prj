@@ -24,6 +24,11 @@ class task_structure
  	// map virtual to phical
  	map<int,int> addmap;
 
+ 	long start_time;
+ 	long end_time;
+ 	long num_pgf;
+ 	long num_hit;
+ 	unsigned int numInsts;
  	bool finished;
 
  public:
