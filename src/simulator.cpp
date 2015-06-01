@@ -137,8 +137,11 @@ bool simulator::clock_tick(){
 				readyQueue.push(eepd.process);
 				// printf("#5_2\n");
 				assert(eepd.process != NULL);
+				// if(eepd.process->pid == 2 && eepd.vpage >= 0 ){
+				// 	printf("INSRET   ...................... %d %ld\n",eepd.ppage ,eventQueue.top().start_time);
+				// }
 				eepd.process->addmap[eepd.vpage] = eepd.ppage;
-				// printf("add page , process %d , vpage %x ,ppage %d at %ld\n", eepd.process->pid,
+				// printf("add page , process %5d , vpage %5x ,ppage %5d at %5ld\n", eepd.process->pid,
 					// eepd.vpage,eepd.ppage, sys_count);
 				// printf("#6\n");
 				break;
@@ -155,8 +158,17 @@ bool simulator::clock_tick(){
 				// printf("#7_1\n");
 				assert(eepd.process != NULL);
 				// printf("#7_2\n");
+				// if(eepd.process->pid == 2 && eepd.vpage >= 0 ){
+				// 	printf("ERSER   ......................  %d %ld\n", eepd.ppage, eventQueue.top().start_time );
+				// }
+				if(eepd.process->addmap.find(eepd.vpage) == eepd.process->addmap.end()){
+					printf("process %s , erase vpahg %d ppage %d at %ld\n", eepd.process->pname.c_str(),
+						eepd.vpage, eepd.ppage,sys_count);
+				}
 				assert(eepd.process->addmap.find(eepd.vpage) != eepd.process->addmap.end());
 				// printf("#7_3\n");
+				// printf("era page , process %5d , vpage %5x ,ppage %5d at %5ld\n", eepd.process->pid,
+					// eepd.vpage,eepd.ppage, sys_count);
 				// printf("erase vpage %6d ppage %6d for %s\n", eepd.vpage,eepd.ppage, eepd.process->pname.c_str());
 				// printf("#7_4\n");
 				eepd.process->addmap.erase(eepd.vpage);

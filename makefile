@@ -22,7 +22,7 @@ mem_sim_fifo.o: mem_sim_fifo.h mem_sim_fifo.cpp mem_sim.cpp	mem_sim.h
 
 
 run: mem‐sim
-	./mem‐sim 500 10000 fifo data/sche_traces_small.txt 
+	./mem‐sim 1 10000 fifo data/sche_traces_small.txt 
 
 clean:
 	rm build/* mem‐sim

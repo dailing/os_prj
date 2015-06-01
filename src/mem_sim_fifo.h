@@ -10,6 +10,8 @@
 
 using namespace std;
 
+
+
 class mem_sim_fifo
 	:public mem_sim
 {
@@ -20,7 +22,8 @@ private:
 	// map phisical page to virtual page
 	map<int,int> ppage_vpage_map;
 	queue<int> loadQueue;
-
+	queue<event> requestQueue;
+	vector<int> firstVisit;
 	long last_load_page;
 public:
 	mem_sim_fifo(int _pages);

@@ -21,7 +21,6 @@ private:
 	task_structure *current;
 	queue<task_structure*> readyQueue;
 	set<task_structure*> waitingQueue;
-	// set<task_structure*> processes;
 	set<task_structure*> finishedSet;
 	// scheduler 
 	int quantum;

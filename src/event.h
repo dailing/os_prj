@@ -33,7 +33,7 @@ public:
 	friend bool operator <(const event &a, const event &b){
 		return a.start_time > b.start_time;
 	}
-	int start_time;
+	long start_time;
 	int type;
 	event_data data;
 	// new process event;

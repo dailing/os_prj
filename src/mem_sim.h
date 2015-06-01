@@ -15,8 +15,6 @@ class mem_sim
 public:
 	int read_page_time;
 	int pages;
-	// virtual int access(int pid,int pgnum) = 0;
-	// virtual int allocate(int pid) = 0;
 	virtual int clock_tick(task_structure*,priority_queue<event> &, long stime)=0;
 	mem_sim(int _pages);
 };
