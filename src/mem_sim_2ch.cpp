@@ -15,9 +15,11 @@ mem_sim_2ch::mem_sim_2ch(int _pages):
 		firstVisit[i] = 0;
 		reference[i] = true;
 	}
+	printf("finished init\n");
 }
 
 int mem_sim_2ch::find_page(void){
+	memcounter++;
 	while(1){
 		memcounter = memcounter % pages;
 		if(reference[memcounter]){
@@ -27,7 +29,6 @@ int mem_sim_2ch::find_page(void){
 		}
 		memcounter ++;
 	}
-	memcounter++;
 	return memcounter;
 }
 
