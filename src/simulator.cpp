@@ -6,6 +6,7 @@
 #include "mem_sim_fifo.h"
 #include "mem_sim_lru.h"
 #include "mem_sim_2ch.h"
+#include "mem_sim_ed.h"
 
 simulator::simulator(int _pages,int _quantum,
 		string _pr,string trace_fi):
@@ -46,6 +47,8 @@ simulator::simulator(int _pages,int _quantum,
 		memmodule = new mem_sim_lru(_pages);
 	else if(_pr	== string("2ch‐alg"))
 		memmodule = new mem_sim_2ch(_pages);
+	else if(_pr	== string("ed"))
+		memmodule = new mem_sim_ed(_pages);
 	else
 		printf("ERROR: param unrecognized\n");
 	// printf("simulator initialed\n");

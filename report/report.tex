@@ -1,0 +1,77 @@
+\documentclass[12pt,a4paper]{article}
+%\usepackage{ctex}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+%\usepackage{enumitem,balance}
+\usepackage{wrapfig}
+\usepackage{mathrsfs, euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+\usepackage{enumerate}
+
+%\setlength{\oddsidemargin}{-0.365in}
+%\setlength{\evensidemargin}{-0.365in}
+%\setlength{\topmargin}{-0.3in}
+%\setlength{\headheight}{0in}
+%\setlength{\headsep}{0in}
+%\setlength{\textheight}{10.1in}
+%\setlength{\textwidth}{7in}
+
+
+\begin{document}
+
+	\begin{center}
+		\begin{Large}\bf Operating System Project Report
+		\end{Large}
+	\end{center}
+
+	\begin{enumerate}[\bf I]
+		\item \textbf{The architecture  of  simulator}
+			\begin{enumerate}[a)]
+				\item \textbf{General description}\\ The simulator system is splitted into two part, memory simulator and CPU simulator, just like the architecture as a real computer. There are two main class in this project:
+				\begin{enumerate}
+					\item[simulator] This class handle all kinds of interrupt and event, it implements the schedule algorithm, it maintains ready queue, CPU time and an event queue for simulation event(explained later).
+					\item[mem\_sim] This is a virtual class, Since different replacement strategy are used in this simulator, a virtual memory simulator class is needed. The simulator class interact with memory simulator via a function clock\_tick(). This function call will read the next memory reference and check if it is already loaded in memory. It will also generate page fault event in simulator.
+				\end{enumerate}
+				
+				\item \textbf{main function}\\
+					Entry of this project, parse command-line arguments and pass to simulator. Then it calls function in simulator class to drive the simulator until all process are finished.
+					
+				\item \textbf{simulator class:}\\
+					This class handle all kinds of interrupt and event, and interact with memory simulator to simulator. There are several interfaces functions:
+					\begin{enumerate}
+						\item[clock\_tick] main function drive the simulator via thist function call, this function will handle event happened in current clock(including page fault, page fetched into memory, process start, process finish, see event for detail) and handle a memory reference if there are process running.
+						\item[schedule] Scheduler implemented in this function, it will check the current task pointer and ready queue. After this function call, current process will be scheduled out(if there is running process) and pushed into the tail of ready queue. If context switch is need, it will add the context-switch time to system clock directly, other-wise don't change the system clock(for example, current process is not scheduled out). Process will not be moved out of ready queue.
+						\item[switch\_out] Different from schedule function, this function move current process out of ready queue. That means that current is interrupted and waiting for some event. Since I used an event queue mechanism in this project, there is no need to maintain a waiting queue in simulator. Then is set current task pointer to empty, and schedule function is called in this function, since current is set to NULL, scheduler will pick a new process in ready queue. The size of ready queue is reduced by 1 after this call.
+					\end{enumerate}
+					Besides, several member variables are descripted here
+					\begin{enumerate}
+						\item[current] pointer point to current task\_structure.
+						\item[readyQueue] Ready process queue.
+						\item[finishedSet] tasks that has finished, Since I used a event queue , which is separated from processes, Then event relative to a process may happen after the process has finished, causing problems, So a check of whether a process has finished is needed.
+						\item[eventQueue] This is a priority queue, sorted by the time of an event. This simulator is driven by this event queue. Event including a page loaded in to memory and process start. each clock the simulator will check whether some event happened in this clock circle, and handle the event. And memory simulator will generate page fetched event. On process start, a new process is added into the tail of ready queue. while on page fetched event, a process is set awake again and be pushed into ready queue.
+					\end{enumerate}
+				\item \textbf{mem\_sim class:}\\
+					This is a virtual class, defines interface of memory simulator system and CPU\_os simulator system. There are two functions defined in this class:
+					\begin{enumerate}
+						\item [clock\_tick] the interface provided to simulator, one memory reference should be handled or a page is generated. If a page fault is generated, then an page fetch event is added into the request of memory system. If memory is bot busy, then a new page fetched event is add into event queue of simulator, After certain time, the event will be handled by simulator and corresponding process is loaded into ready queue again. Thus the two part of this system is coupled. This function will call handle\_page\_event to help it to finish its job.
+						\item [find\_page] this Function varies in different replacement algorithms,  it returns the next page that should be replaced.
+					\end{enumerate}
+					The three different algorithms are implemented by extending this class, and override the clock\_tick function. The construction of simulator class will parse the input param and choose proper class instance to initiate the mem\_sim pointer. \\
+				\item \textbf{task\_structure:}\\
+					This class stores information about the task. The construction finction of this class will read the mem\_trace file and store memory reference in a queue. All process related information are stored  in this class. There are exactly one task\_structure for each process. The simulator will create them and refere them as pointer.
+				\item \textbf{event:}\\
+					This class stores information about events in simulator, they are stored in a priority queue in simulator as descripted in previous parts. C++ operator $<$ is implemented in this class to compare the time of each event.
+			\end{enumerate}
+			This kind of architecture is flexible, especially for adding a new replaement algorithm. Only need to add corresponding entrence in simulator class and add corresponding class that extends the base class, then a new memory algorithm can run on the same simulator. 
+			
+		\item \textbf{policy decisions in this project}
+			\begin{enumerate}
+				\item A new process will always go to the tail of ready queue. So the new process will not interrupt the execution of current process, and will not affect anything except for ready queue.
+				\item The process just weak from waiting will not generater another page fault again. This is garenteed by the implementation of simulator. There are two queues storing events, one is in mem\_sim, called request queue, the other is in simulator, called event queue. Request queue will store all page fault event, keep records of whitch process need a page and in what order should the one page be loaded for the process. There can be many electments  in request queue especially when the memory size is small, while there is only one page fetched in event queue. That is, the new loaded page will be at least refered once before its replaced. So a process with $n$ memory refers may generate at most $n$ page fault.
+				\item Since any process will fault again, so any process returning from page will goes to the tail of readyqueue. Other process may gnerate page faults during this time, but they will be switched out immerdiately and there querry are queued.
+				\item The page load queue is a FIFO queue, that is, the pages that are required earlier will be loaded into memory earlier.
+			\end{enumerate}
+	\end{enumerate}
+	    	
+\end{document}	

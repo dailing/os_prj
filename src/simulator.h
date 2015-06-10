@@ -45,7 +45,7 @@ private:
 	void printResult(void);
 
 public:
-	void addProcess();
+	// void addProcess();
 	bool clock_tick();
 	simulator(int,int,string,string);
 };
