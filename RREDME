@@ -1,0 +1,28 @@
+
+Files in the project root folder are like this
+├── makefile                        MakeFile to build this project
+├── RREDME                          This file
+├── src
+│   ├── event.h                     Contain the defination of event class, 
+│   │                               which is used in simulator
+│   ├── main.cpp                    Entrence of this project.
+│   ├── mem_sim_2ch.cpp             Contain the second chance page replacement
+│   │                               algorithm
+│   ├── mem_sim_2ch.h               Define the mem_sim_2ch class
+│   ├── mem_sim.cpp                 Contain the interfaces for memory simulator
+│   │                               and main simulator
+│   ├── mem_sim_ed.cpp              Contain the page replacement alogrithm designed
+│   │                               by me, which is not efficient
+│   ├── mem_sim_ed.h                Define mem_sim_ed class
+│   ├── mem_sim_fifo.cpp            Contain the FIFO page placement algorithm
+│   ├── mem_sim_fifo.h              Define mem_sim_fifo class
+│   ├── mem_sim.h                   Define mem_sim class, define the interface of 
+│   │                               memory simulator system
+│   ├── mem_sim_lru.cpp             Contain the LRU page eplacement algorithm
+│   ├── mem_sim_lru.h               Define mem_sim_lru class
+│   ├── simulator.cpp               Main simulator class, Implement the schedule
+│   │                               algorithm, and call memory simulator to simulate
+│   │                               the behavour of process.
+│   ├── simulator.h                 Define simulator class
+│   ├── task_structure.cpp          Implement the constructor of task_structure.
+│   └── task_structure.h            Define task_structure class.
